@@ -1,0 +1,11 @@
+#
+# ansible-playbook -i inventory.ini minio-cluster.yml
+#
+
+---
+- name: Install MinIO cluster
+  hosts: minio
+  become: True
+
+  roles:
+    - minio-cluster

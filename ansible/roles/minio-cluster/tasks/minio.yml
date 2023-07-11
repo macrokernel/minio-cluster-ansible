@@ -1,0 +1,136 @@
+---
+- name: Configure MinIO data disk /mnt/disk1 in /etc/fstab and mount it
+  ansible.posix.mount:
+    path: /mnt/disk1
+    src: LABEL=DISK1
+    fstype: xfs
+    opts: defaults,noatime,auto
+    dump: 0
+    passno: 2
+    state: mounted
+
+- name: Configure MinIO data disk /mnt/disk2 in /etc/fstab and mount it
+  ansible.posix.mount:
+    path: /mnt/disk2
+    src: LABEL=DISK2
+    fstype: xfs
+    opts: defaults,noatime,auto
+    dump: 0
+    passno: 2
+    state: mounted
+
+- name: Configure MinIO data disk /mnt/disk3 in /etc/fstab and mount it
+  ansible.posix.mount:
+    path: /mnt/disk3
+    src: LABEL=DISK3
+    fstype: xfs
+    opts: defaults,noatime,auto
+    dump: 0
+    passno: 2
+    state: mounted
+
+- name: Configure MinIO data disk /mnt/disk4 in /etc/fstab and mount it
+  ansible.posix.mount:
+    path: /mnt/disk4
+    src: LABEL=DISK4
+    fstype: xfs
+    opts: defaults,noatime,auto
+    dump: 0
+    passno: 2
+    state: mounted
+
+
+- name: Create MinIO tenant directories on the data disks
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /mnt/disk1/infra
+    - /mnt/disk2/infra
+    - /mnt/disk3/infra
+    - /mnt/disk4/infra
+
+
+- name: Check for certs directory on local machine
+  delegate_to: localhost
+  run_once: true
+  become: false
+  stat:
+    path: "{{ role_path }}/../../files/certs/{{ domain }}.key"
+  register: ssl_certs
+
+- name: Create MinIO TLS cert directory
+  ansible.builtin.file:
+    path: "/opt/minio/certs"
+    state: directory
+    mode: "0755"
+  when: ssl_certs.stat.exists | default(False) == True
+
+- name: Deliver TLS certificate files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/opt/minio/certs/{{ item.dest }}"
+    owner: "root"
+    group: "root"
+    mode: "0400"
+  with_items:
+    - { src: "../../files/certs/{{ domain }}.crt", dest: "public.crt" }
+    - { src: "../../files/certs/{{ domain }}.key", dest: "private.key" }
+  notify:
+    - restart minio-infra
+  when: ssl_certs.stat.exists | default(False) == True
+
+
+- name: Create MinIO container with SSL
+  community.docker.docker_container:
+    image: "minio/minio:{{ minio_version }}"
+    command: "server --address ':9000' --console-address ':9001' https://minio-0{1...4}.{{ domain }}/mnt/disk{1...4}/infra"
+    name: minio-infra
+    hostname: "{{ inventory_hostname }}"
+    network_mode: host
+    env:
+      MINIO_SERVER_URL: "{{ minio_cluster_url }}:9000"
+      MINIO_BROWSER_REDIRECT_URL: "{{ minio_cluster_url }}:9001"
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+      MINIO_PROMETHEUS_URL: "http://prometheus.{{ domain }}:9090"
+      MINIO_PROMETHEUS_JOB_ID: "minio-infra"
+      MINIO_UPDATE: "off"
+    volumes:
+      - /mnt/disk1/infra:/mnt/disk1/infra:rw
+      - /mnt/disk2/infra:/mnt/disk2/infra:rw
+      - /mnt/disk3/infra:/mnt/disk3/infra:rw
+      - /mnt/disk4/infra:/mnt/disk4/infra:rw
+      - /opt/minio/certs:/root/.minio/certs:rw
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "-k", "https://localhost:9000/minio/health/live"]
+    restart_policy: unless-stopped
+  when: ssl_certs.stat.exists | default(False) == True
+
+- name: Create MinIO container without SSL
+  community.docker.docker_container:
+    image: "minio/minio:{{ minio_version }}"
+    command: "server --address ':9000' --console-address ':9001' http://minio-0{1...4}.{{ domain }}/mnt/disk{1...4}/infra"
+    name: minio-infra
+    hostname: "{{ inventory_hostname }}"
+    network_mode: host
+    env:
+      MINIO_SERVER_URL: "{{ minio_cluster_url }}:9000"
+      MINIO_BROWSER_REDIRECT_URL: "{{ minio_cluster_url }}:9001"
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_PROMETHEUS_AUTH_TYPE: "public"
+      MINIO_PROMETHEUS_URL: "http://prometheus.{{ domain }}:9090"
+      MINIO_PROMETHEUS_JOB_ID: "minio-infra"
+      MINIO_UPDATE: "off"
+    volumes:
+      - /mnt/disk1/infra:/mnt/disk1/infra:rw
+      - /mnt/disk2/infra:/mnt/disk2/infra:rw
+      - /mnt/disk3/infra:/mnt/disk3/infra:rw
+      - /mnt/disk4/infra:/mnt/disk4/infra:rw
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+    restart_policy: unless-stopped
+  when: ssl_certs.stat.exists | default(False) != True

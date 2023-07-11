@@ -1,0 +1,16 @@
+---
+- name: Allow LAN access to tcp port 9000 - MinIO port
+  ufw:
+    rule: allow
+    port: 9000
+    proto: tcp
+    from: "{{ lan_network }}"
+  when: lan_network is defined
+
+- name: Allow LAN access to tcp port 9001 - MinIO Console port
+  ufw:
+    rule: allow
+    port: 9001
+    proto: tcp
+    from: "{{ lan_network }}"
+  when: lan_network is defined

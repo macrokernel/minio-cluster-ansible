@@ -1,0 +1,20 @@
+---
+- openstack.cloud.security_group_rule:
+    description: "Allow LAN access to tcp port 9000 - MinIO port"
+    project: "{{ domain }}"
+    security_group: "{{ minio_openstack_security_group }}"
+    protocol: tcp
+    port_range_min: 9000
+    port_range_max: 9000
+    remote_ip_prefix: "{{ lan_network }}"
+  when: lan_network is defined
+
+- openstack.cloud.security_group_rule:
+    description: "Allow LAN access to tcp port 9001 - MinIO Console port"
+    project: "{{ domain }}"
+    security_group: "{{ minio_openstack_security_group }}"
+    protocol: tcp
+    port_range_min: 9001
+    port_range_max: 9001
+    remote_ip_prefix: "{{ lan_network }}"
+  when: lan_network is defined

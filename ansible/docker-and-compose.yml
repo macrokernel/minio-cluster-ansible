@@ -1,0 +1,70 @@
+---
+- name: Docker and compose
+  hosts: all
+  become: True
+
+  tasks:
+    - name: Uninstall old versions | APT
+      apt:
+        pkg:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: Add an APT signing key, will not download if present | Debian
+      apt_key:
+        id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+      when: ansible_distribution == "Debian"
+
+    - name: Add an APT signing key, will not download if present | Ubuntu
+      apt_key:
+        id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Add docker-ce repository into sources list using specified filename | Debian
+      apt_repository:
+        repo: deb https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
+        state: present
+        filename: docker
+      when: ansible_distribution == "Debian"
+
+    - name: Add docker-ce repository into sources list using specified filename | Ubuntu
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+        filename: docker
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install Docker Engine and docker-compose | APT
+      apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+          - python3-pip
+        update_cache: yes
+
+    - name: Install docker-sdk python package
+      ansible.builtin.pip:
+        name: docker>=4.0.0
+
+    - name: Add existing user to group docker | Debian or Ubuntu
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Create docker system prune cron job
+      ansible.builtin.cron:
+        name: "Remove all stopped docker containers and unused docker images"
+        minute: "0"
+        hour: "3"
+        job: "docker system prune -a -f"

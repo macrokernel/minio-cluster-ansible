@@ -1,0 +1,15 @@
+---
+# ==== Network settings
+# Docker network address on the docker0 bridge of the target hosts, ex: 172.17.0.0/16
+docker_network: "172.17.0.0/16"
+# LAN network address of the target hosts, ex: 10.1.1.0/24
+lan_network: "10.0.0.0/24"
+# DNS domain name
+domain: "example.org"
+
+# ==== MinIO
+minio_version: "RELEASE.2023-06-29T05-12-28Z"
+minio_root_user: "minioadmin"
+minio_root_password: "minioadmin"
+# Change schema to 'http' if you are not using a TLS certificate
+minio_cluster_url: "https://minio.{{ domain }}"

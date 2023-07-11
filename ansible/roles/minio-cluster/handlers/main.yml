@@ -1,0 +1,6 @@
+---
+- name: restart minio
+  community.docker.docker_container:
+    name: "minio-infra"
+    image: "minio/minio:{{ minio_version }}"
+    restart: yes

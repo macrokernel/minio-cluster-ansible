@@ -1,0 +1,21 @@
+---
+- name: 'Check mandatory variables are defined'
+  assert:
+    that:
+      - docker_network != ""
+      - minio_version != ""
+
+- name: Include MinIO tasks
+  include_tasks: minio.yml
+
+- name: Include UFW tasks
+  include_tasks: ufw.yml
+  when: not minio_openstack_security_group is defined
+
+- name: Include OpenStack security group tasks
+  include: openstack-security-group.yml
+  when: minio_openstack_security_group is defined
+  delegate_to: localhost
+  run_once: true
+  become: false
+  when: minio_openstack_security_group is defined
