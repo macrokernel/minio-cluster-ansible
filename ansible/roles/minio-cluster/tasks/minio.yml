@@ -32,7 +32,7 @@
   run_once: true
   become: false
   stat:
-    path: "{{ role_path }}/../../files/certs/{{ domain }}.key"
+    path: "{{ role_path }}/../files/certs/{{ domain }}.key"
   register: ssl_certs
 
 - name: Create MinIO TLS cert directory
@@ -50,8 +50,8 @@
     group: "root"
     mode: "0400"
   with_items:
-    - { src: "../../files/certs/{{ domain }}.crt", dest: "public.crt" }
-    - { src: "../../files/certs/{{ domain }}.key", dest: "private.key" }
+    - { src: "../files/certs/{{ domain }}.crt", dest: "public.crt" }
+    - { src: "../files/certs/{{ domain }}.key", dest: "private.key" }
   notify:
     - restart minio-infra
   when: ssl_certs.stat.exists | default(False) == True
