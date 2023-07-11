@@ -1,43 +1,18 @@
 ---
-- name: Configure MinIO data disk /mnt/disk1 in /etc/fstab and mount it
+- name: Configure MinIO data disks /etc/fstab and mount them
   ansible.posix.mount:
-    path: /mnt/disk1
-    src: LABEL=DISK1
+    path: "/mnt/{{ item.dir }}"
+    src: "LABEL={{ item.label }}"
     fstype: xfs
     opts: defaults,noatime,auto
     dump: 0
     passno: 2
     state: mounted
-
-- name: Configure MinIO data disk /mnt/disk2 in /etc/fstab and mount it
-  ansible.posix.mount:
-    path: /mnt/disk2
-    src: LABEL=DISK2
-    fstype: xfs
-    opts: defaults,noatime,auto
-    dump: 0
-    passno: 2
-    state: mounted
-
-- name: Configure MinIO data disk /mnt/disk3 in /etc/fstab and mount it
-  ansible.posix.mount:
-    path: /mnt/disk3
-    src: LABEL=DISK3
-    fstype: xfs
-    opts: defaults,noatime,auto
-    dump: 0
-    passno: 2
-    state: mounted
-
-- name: Configure MinIO data disk /mnt/disk4 in /etc/fstab and mount it
-  ansible.posix.mount:
-    path: /mnt/disk4
-    src: LABEL=DISK4
-    fstype: xfs
-    opts: defaults,noatime,auto
-    dump: 0
-    passno: 2
-    state: mounted
+  with_items:
+    - { dir: 'disk1', label: 'DISK1' }
+    - { dir: 'disk2', label: 'DISK2' }
+    - { dir: 'disk3', label: 'DISK3' }
+    - { dir: 'disk4', label: 'DISK4' }
 
 
 - name: Create MinIO tenant directories on the data disks
